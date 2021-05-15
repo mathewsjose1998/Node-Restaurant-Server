@@ -4,9 +4,11 @@ var path = require("path");
 var cookieParser = require("cookie-parser");
 var logger = require("morgan");
 var mongoose=require('mongoose')
+var session =require('express-session')
+var FileStore = require('session-file-store')(session)
 
-var indexRouter = require("./routes/index");
-var usersRouter = require("./routes/users");
+var indexRouter = require("./routes/users");
+var usersRouter = require("./routes/index");
 var dishRouter = require("./routes/dishesRouter");
 var promoRouter = require("./routes/promoRouter");
 var leaderRouter = require("./routes/leaderRouter");
@@ -22,51 +24,42 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 //cookies and basic authentication
-app.use(cookieParser('secret'));
+//app.use(cookieParser('12345-67890-09876-54321'));
+app.use(session({
+  name:'session_id',
+  secret:'12345-67890-09876-54321',
+  saveUninitialized:false,
+  resave:false,
+  store:new FileStore()
+}))
+
+app.use("/", indexRouter);
+app.use("/users", usersRouter);
 
 const auth=(req,res,next)=>{
   
-  console.log(req.signedCookies)
-  if(!req.signedCookies.user){
+ 
+  if(!req.session.user){
+            var err=new Error("  not authorised go to /login or /signup")
 
-          const authHeader=req.headers.authorization;
-
-          if(!authHeader){
-            var err=new Error("  not authorised")
-
-            res.setHeader("WWW-Authenticate",'Basic');
+    
             err.status=401;
             return next(err)
-          }
+  }
+          
 
-          var auth=Buffer.from(authHeader.split(' ')[1],'base64').toString().split(':')
-          let username=auth[0];
-          let password=auth[1];
-          console.log(auth);
-
-          if(username==='admin'&& password==='password'){
-            res.cookie('user','admin',{signed:true})
-            next();
-          }
-          else{
-            var err=new Error(" not authorised")
-
-            res.setHeader("WWW-Authenticate",'Basic');
-            res.status=401;
-            return next(err)
-          }
+        
+      else{
+        if(req.session.user==='authorised'){
+          next();
         }
         else{
-          if(req.signedCookies.user==='admin'){
-            next();
-          }
-          else{
-            var err=new Error(" not authorised")
+          var err=new Error(" not authorised")
 
-           
-            return next(err)
-          }
+          
+          return next(err)
         }
+      }
 
   }
   
