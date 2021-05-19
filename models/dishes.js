@@ -13,8 +13,10 @@ const commentSchema=new Schema({
         required:false
     },
     author:{
-        type:String,
-        required:true
+        //for mongoose population
+        type:mongoose.Schema.Types.ObjectId,
+        ref:'User'
+        
     }
 
 })
