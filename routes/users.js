@@ -6,12 +6,12 @@ var session =require('express-session')
 var FileStore = require('session-file-store')(session)
 var passport=require('passport');
 var authenticate=require('../authenticate')
-
+const cors=require('./cors')
 
 router.use(express.json())
 
 /* GET home page. */
-router.get('/', authenticate.verifyUser,authenticate.verifyAdmin, (req, res, next)=> {
+router.get('/', cors.corsWithOptions, authenticate.verifyUser,authenticate.verifyAdmin, (req, res, next)=> {
 
   User.find({})
 
@@ -24,7 +24,7 @@ router.get('/', authenticate.verifyUser,authenticate.verifyAdmin, (req, res, nex
  // res.render('index', { title: 'Express' });
 });
 
-router.post('/signup',(req,res,next)=>{
+router.post('/signup',cors.corsWithOptions,(req,res,next)=>{
   
   User.register(new User({username:req.body.username}),
   req.body.password,(err,user)=>{
@@ -60,7 +60,7 @@ router.post('/signup',(req,res,next)=>{
   
 
 
-  router.post('/login',passport.authenticate('local'),(req,res)=>{
+  router.post('/login',cors.corsWithOptions,passport.authenticate('local'),(req,res)=>{
     console.log(req.user)
     var token=authenticate.getToken({_id:req.user._id})
     res.statusCode=200;
@@ -79,6 +79,15 @@ router.post('/signup',(req,res,next)=>{
       var err=new Error(" you are not logged in")
       err.status=403;
       next(err);
+    }
+  })
+
+  router.get('/facebook/token',passport.authenticate('facebook-token'),(req,res)=>{
+    if(req.user){
+      var token=authenticate.getToken({_id:req.user._id})
+      res.statusCode=200;
+      res.setHeader('Content-Type','application/json')
+      res.json( {success:true,token:token, status:'you are succesfully logged in'})
     }
   })
 
